@@ -18,7 +18,7 @@ class Rating(RatingBase):
     
     class Config:
         from_attributes = True
-
+        
 class RatingResponse(BaseModel):
     rating_id: int
     club_id: int

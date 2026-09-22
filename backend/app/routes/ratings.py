@@ -1,78 +1,60 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from app.database import get_db, RatingDB, ClubDB, UserDB
-from app.models import RatingResponse, RatingCreate
-from typing import List
+from fastapi import APIRouter, HTTPException
+from app.supabase_client import supabase
+from app.models import RatingCreate
 
 router = APIRouter(prefix="/api/ratings", tags=["ratings"])
 
-@router.post("/", response_model=RatingResponse)
-def create_rating(
-    rating: RatingCreate,
-    db: Session = Depends(get_db)
-):
-    """Create a new rating for a club"""
-    
-    # Check if club exists
-    club = db.query(ClubDB).filter(ClubDB.club_id == rating.club_id).first()
-    if not club:
+@router.post("/")
+def create_rating(rating: RatingCreate):
+    # Check club exists
+    club = supabase.table("clubs").select("club_id").eq("club_id", rating.club_id).execute()
+    if not club.data:
         raise HTTPException(status_code=404, detail="Club not found")
     
-    # Check if user exists
-    user = db.query(UserDB).filter(UserDB.user_id == rating.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    # Upsert rating
+    existing = supabase.table("ratings").select("*").eq("club_id", rating.club_id).eq("user_id", rating.user_id).execute()
     
-    # Validate rating score
-    if rating.rating_score < 1 or rating.rating_score > 10:
-        raise HTTPException(status_code=400, detail="Rating score must be between 1 and 10")
-    
-    # Check if user already rated this club
-    existing_rating = db.query(RatingDB).filter(
-        RatingDB.club_id == rating.club_id,
-        RatingDB.user_id == rating.user_id
-    ).first()
-    
-    if existing_rating:
-        # Update existing rating
-        existing_rating.rating_score = rating.rating_score
-        existing_rating.review_text = rating.review_text
+    if existing.data:
+        result = supabase.table("ratings").update({
+            "rating_score": rating.rating_score,
+            "review_text": rating.review_text
+        }).eq("club_id", rating.club_id).eq("user_id", rating.user_id).execute()
     else:
-        # Create new rating
-        db_rating = RatingDB(**rating.dict())
-        db.add(db_rating)
+        result = supabase.table("ratings").insert({
+            "club_id": rating.club_id,
+            "user_id": rating.user_id,
+            "rating_score": rating.rating_score,
+            "review_text": rating.review_text
+        }).execute()
     
-    # Update club's average rating
-    club_ratings = db.query(func.avg(RatingDB.rating_score)).filter(
-        RatingDB.club_id == rating.club_id
-    ).scalar()
-    club_count = db.query(func.count(RatingDB.rating_id)).filter(
-        RatingDB.club_id == rating.club_id
-    ).scalar()
-    
-    club.average_rating = float(club_ratings) if club_ratings else 0.0
-    club.number_of_ratings = club_count or 0
-    
-    db.commit()
-    
-    if existing_rating:
-        db.refresh(existing_rating)
-        return existing_rating
-    else:
-        db.refresh(db_rating)
-        return db_rating
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Failed to save rating")
 
-@router.get("/{rating_id}", response_model=RatingResponse)
-def get_rating(rating_id: int, db: Session = Depends(get_db)):
-    """Get a specific rating by ID"""
-    rating = db.query(RatingDB).filter(RatingDB.rating_id == rating_id).first()
-    if not rating:
+    # Recalculate average and count
+    all_ratings = supabase.table("ratings").select("rating_score").eq("club_id", rating.club_id).execute()
+    scores = [r["rating_score"] for r in all_ratings.data]
+    new_count = len(scores)
+    new_average = sum(scores) / new_count if new_count > 0 else 0.0
+
+    print(f"Updating club {rating.club_id}: avg={new_average}, count={new_count}")
+
+    update_result = supabase.table("clubs").update({
+        "average_rating": new_average,
+        "number_of_ratings": new_count
+    }).eq("club_id", rating.club_id).execute()
+
+    print(f"Update result: {update_result.data}")
+    
+    return result.data[0]
+
+@router.get("/club/{club_id}")
+def get_club_ratings(club_id: int):
+    result = supabase.table("ratings").select("*").eq("club_id", club_id).execute()
+    return result.data
+
+@router.get("/{rating_id}")
+def get_rating(rating_id: int):
+    result = supabase.table("ratings").select("*").eq("rating_id", rating_id).execute()
+    if not result.data:
         raise HTTPException(status_code=404, detail="Rating not found")
-    return rating
-
-@router.get("/club/{club_id}", response_model=List[RatingResponse])
-def get_club_ratings(club_id: int, db: Session = Depends(get_db)):
-    """Get all ratings for a club"""
-    ratings = db.query(RatingDB).filter(RatingDB.club_id == club_id).all()
-    return ratings
+    return result.data[0]

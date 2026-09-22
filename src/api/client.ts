@@ -1,8 +1,7 @@
 import axios from "axios";
-
 // Configure API base URL
 const API_BASE_URL = "http://localhost:8000";
-
+import type { Club } from "../Classes/Club";
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -12,15 +11,6 @@ const api = axios.create({
 });
 
 // Interfaces matching backend
-export interface Club {
-  club_id: number;
-  name: string;
-  category: string;
-  description: string;
-  days_meet: string[];
-  number_of_ratings: number;
-  average_rating: number;
-}
 
 export interface Rating {
   rating_id: number;

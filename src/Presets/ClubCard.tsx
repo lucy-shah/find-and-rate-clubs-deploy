@@ -1,17 +1,10 @@
-import type { Club, meetDay } from "../Classes/Club";
+import type { Club } from "../Classes/Club";
 
 interface ClubCardProps {
   club: Club;
   onSelectClub: (club: Club) => void;
 }
 
-function getDaysMeetText(day_list: meetDay[]): string {
-    let to_return: string = "";
-    day_list.map((day, index) => (
-        to_return = index == 0 ? (day) : (to_return + " | " + day)
-    ))
-    return to_return;
-}
 
 function getRatingColor(rating: number): string {
   const clampedRating = Math.max(1, Math.min(5, rating));
@@ -96,7 +89,7 @@ export default function ClubCard({ club, onSelectClub }: ClubCardProps) {
               style={{
                 fontSize: "3.5rem",
                 fontWeight: "bold",
-                fontFamily: "-apple-system",
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
                 color: "#000000",
               }}
             >
@@ -106,7 +99,7 @@ export default function ClubCard({ club, onSelectClub }: ClubCardProps) {
           <span
             style={{
               fontSize: "0.95rem",
-              fontFamily: "-apple-system",
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
               color: "#666666",
             }}
           >
@@ -119,47 +112,47 @@ export default function ClubCard({ club, onSelectClub }: ClubCardProps) {
           <h2
             style={{
               fontSize: "2rem",
-              fontFamily: "-apple-system",
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
               fontWeight: "bold",
               color:"#000000",
               margin: "0",
               marginBottom: "0.5rem",
             }}
           >
-            {club.name}
+            {club.name ?? "Unnamed Club"}
           </h2>
           <div
             style={{
               fontSize: "0.75rem",
-              fontFamily: "-apple-system",
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
               fontWeight: "600",
               color: "#666666",
               letterSpacing: "0.05em",
               marginBottom: "0.5rem",
             }}
           >
-            {club.category.toUpperCase()}
+            {(club.org_type ?? "").toUpperCase()}
           </div>
           <div
             style={{
               fontSize: "1rem",
-              fontFamily: "-apple-system",
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
               color: "#666666",
               marginBottom: "1.5rem",
             }}
           >
-            {club.description}
+            {club.mission ?? "No description available."}
           </div>
 
           <div
             style={{
               fontSize: "1rem",
-              fontFamily: "-apple-system",
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
               color: "#666666",
               marginBottom: "1.5rem",
             }}
           >
-            {getDaysMeetText(club.days_meet as meetDay[])}
+            {club.categories.join(" | ")}
           </div>
 
         </div>
