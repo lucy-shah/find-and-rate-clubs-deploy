@@ -8,6 +8,8 @@ import LoginPage from "./Pages/LoginPage.tsx";
 import SignupPage from "./Pages/SignupPage.tsx";
 import ClubDetailedView from "./Pages/ClubDetailedView.tsx";
 
+
+
 export default function App() {
   const navigate = useNavigate();
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
